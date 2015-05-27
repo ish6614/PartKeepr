@@ -5,14 +5,61 @@ use PartKeepr\Service\AnonService,
 	PartKeepr\User\User,
 	PartKeepr\User\UserManager,
 	PartKeepr\User\Exceptions\InvalidLoginDataException,
-	PartKeepr\Session\SessionManager;
+	PartKeepr\Session\SessionManager,
+	PartKeepr\Service\Annotations\ServiceParameter as ServiceParameter,
+	PartKeepr\Service\Annotations\ServiceCall as ServiceCall,
+	PartKeepr\Service\Annotations\ServiceReturnValue as ServiceReturnValue,
+	PartKeepr\Service\Annotations\Service as ServiceDescription;
 
+
+/**
+ * Implements the AuthService
+ * @ServiceDescription(description="Manages authentication against PartKeepr")
+ */
 class AuthService extends AnonService {
 	/**
-	 * Logs in the given user. If the login was successful,
-	 * a session is automatically started.
-	 * 
+	 * Logs in the given user. If the login was successful, a session is automatically started.
+	 *
+	 * @return array The data
 	 * @throws InvalidLoginDataException
+	 *
+	 * @ServiceCall(description="Authenticates a user against the system",
+	 * 				documentation="Authenticates a user and starts a new session upon success.",
+	 * 				returnValues={
+	 * 					@ServiceReturnValue(
+	 * 											name="username",
+	 * 											type="string:50",
+	 * 											description="The logged in username"
+	 * 										),
+	 * 					@ServiceReturnValue(
+	 * 											name="sessionid",
+	 * 											type="string:50",
+	 * 											description="The session ID"
+	 * 										),
+	 * 					@ServiceReturnValue(
+	 * 											name="admin",
+	 * 											type="boolean",
+	 *	 										description="True if the logged in user has admin rights"
+	 * 										),
+	 * 					@ServiceReturnValue(
+	 * 											name="userPreferences",
+	 * 											type="UserPreference[]",
+	 * 											description="An array of UserPreferences"
+	 * 										)
+	 * 					},
+	 * 				parameters={
+	 * 					@ServiceParameter(	name="username",
+	 * 										type="string:50",
+	 * 										required=true,
+	 * 										description="The username to authenticate"
+	 * 										),
+	 * 					@ServiceParameter(	name="password",
+	 * 										type="string:32",
+	 * 										required=true,
+	 * 										description="The password, hashed in MD5"
+	 * 										)
+	 * 				})
+	 *
 	 */
 	public function login () {
 		$this->requireParameter("username");
@@ -28,6 +75,8 @@ class AuthService extends AnonService {
 		if ($authenticatedUser !== false) {
 			/* Start Session */
 			$session = SessionManager::getInstance()->startSession($authenticatedUser);
+			
+			$session->getUser()->updateSeen();
 			
 			$aPreferences = array();
 			
@@ -46,7 +95,5 @@ class AuthService extends AnonService {
 		} else {
 			throw new InvalidLoginDataException();
 		}
-		
-	
-	}	
+	}
 }

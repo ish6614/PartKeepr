@@ -15,6 +15,7 @@ Ext.define("PartKeepr.Part", {
 	         {	name: 'minStockLevel',		type: 'int'},
 	         {	name: 'createDate',			type: 'datetime'},
 	         {	name: 'needsReview',		type: 'boolean'},
+		 {	name: 'partCondition',			type: 'string'},
 	         
 	         // Various things that don't belong to the part, but are transmitted anyways to make handling easier
 	         {	name: 'initialStockLevel',		type: 'int'},
@@ -22,6 +23,8 @@ Ext.define("PartKeepr.Part", {
 	         {	name: 'initialStockLevelPrice',	type: 'float'},
 	         {	name: 'initialStockLevelPricePerItem',	type: 'boolean'},
 	         {	name: 'partUnitName',		type: 'string'},
+             {	name: 'partUnitShortName',	type: 'string'},
+
 	         {	name: 'footprintName',		type: 'string'},
 	         {	name: 'storageLocationName',type: 'string'},
 	         {	name: 'categoryName',		type: 'string'},

@@ -43,8 +43,7 @@ class PartKeepr {
 	 */
 	public static function initializeClassLoaders() {
 		require_once 'Doctrine/Common/ClassLoader.php';
-		
-		
+
 		$classLoader = new ClassLoader('PartKeepr', self::getRootDirectory() . "/src/backend");
 		$classLoader->register();
 		
@@ -60,7 +59,7 @@ class PartKeepr {
 		$classLoader = new ClassLoader('Doctrine\Common');
 		$classLoader->register();
 		
-		$classLoader = new ClassLoader('Symfony', 'Doctrine');
+		$classLoader = new ClassLoader('Symfony');
 		$classLoader->register();
 		
 		$classLoader = new ClassLoader("DoctrineExtensions\NestedSet", self::getRootDirectory() ."/3rdparty/doctrine2-nestedset/lib");
@@ -96,9 +95,13 @@ class PartKeepr {
 	 */
 	public static function initializeConfig ($environment = null) {
 		if ($environment != null) {
-			include(self::getRootDirectory()."/config-$environment.php");
+			$config = self::getRootDirectory()."/config-$environment.php";
 		} else {
-			include(self::getRootDirectory()."/config.php");
+			$config = self::getRootDirectory()."/config.php";
+		}
+
+		if (file_exists($config)) {
+			include($config);
 		}
 		
 		// Check if the files path is set. If not, fall back to <partkeepr-root>/data/
@@ -136,6 +139,7 @@ class PartKeepr {
 		$versions = json_decode($data, true);
 		
 		if (PartKeeprVersion::PARTKEEPR_VERSION == "{V_GIT}") { return; }
+		if (substr(PartKeeprVersion::PARTKEEPR_VERSION,0,17) == "partkeepr-nightly") { return; }
 		
 		if (version_compare(PartKeepr::getVersion(), $versions[0]["version"], '<')) {
 			
@@ -166,10 +170,39 @@ class PartKeepr {
 		
 		$connectionOptions = PartKeepr::createConnectionOptionsFromConfig();
 		
-		if (extension_loaded("apc")) {
-			$cache = new \Doctrine\Common\Cache\ApcCache();
-		} else {
-			$cache = new \Doctrine\Common\Cache\ArrayCache();
+		switch (strtolower(PartKeeprConfiguration::getOption("partkeepr.cache.implementation", "default"))) {
+			case "apc":
+				$cache = new \Doctrine\Common\Cache\ApcCache();
+				break;
+			case "xcache":
+				if (php_sapi_name() !== "cli") {
+					$cache = new \Doctrine\Common\Cache\XcacheCache();
+				} else {
+					// For CLI SAPIs, revert to the ArrayCache as Xcache spits out strange warnings when running in CLI.
+					$cache = new \Doctrine\Common\Cache\ArrayCache(); 
+				}
+				
+				break;
+			case "memcache":
+				$memcache = new \Memcache();
+				$memcache->connect(	PartKeeprConfiguration::getOption("partkeepr.cache.memcache.host", "localhost"),
+									PartKeeprConfiguration::getOption("partkeepr.cache.memcache.port", "11211"));
+				$cache = new \Doctrine\Common\Cache\MemcacheCache();
+				$cache->setMemcache($memcache);
+				break;
+			case "default":
+			case "auto":
+				if (extension_loaded("xcache")) {
+					$cache = new \Doctrine\Common\Cache\XcacheCache();
+				} else if (extension_loaded("apc")) {
+					$cache = new \Doctrine\Common\Cache\ApcCache();
+				} else {
+					$cache = new \Doctrine\Common\Cache\ArrayCache();
+				}
+				break;
+			case "none":
+				$cache = new \Doctrine\Common\Cache\ArrayCache();
+				break;
 		}
 		
 		$config->setMetadataCacheImpl($cache);
@@ -191,7 +224,7 @@ class PartKeepr {
 	
 	public static function createConnectionOptionsFromConfig () {
 		$connectionOptions = array();
-		
+
 		$driver = PartKeeprConfiguration::getOption("partkeepr.database.driver");
 		
 		switch ($driver) {
@@ -256,7 +289,7 @@ class PartKeepr {
 	 */
 	public static function getEntityManager () {
 		if (!self::$entityManager instanceof EntityManager) {
-			throw new Exception("No EntityManager found. Make sure you called initializeDoctrine() or initialize().");
+			throw new \Exception("No EntityManager found. Make sure you called initializeDoctrine() or initialize().");
 		}
 		return self::$entityManager;
 	}
@@ -285,12 +318,15 @@ class PartKeepr {
 		return array(
 			'PartKeepr\User\User',
 			'PartKeepr\Session\Session',
-		
+				
+			'PartKeepr\EventNotification\Event',
+			'PartKeepr\EventNotification\LastNotification',
+
 			'PartKeepr\Footprint\Footprint',
 			'PartKeepr\Footprint\FootprintImage',
 			'PartKeepr\Footprint\FootprintAttachment',
 			'PartKeepr\FootprintCategory\FootprintCategory',
-		
+
 			'PartKeepr\Part\Part',
 			'PartKeepr\Part\PartUnit',
 			'PartKeepr\Part\PartManufacturer',
@@ -298,6 +334,10 @@ class PartKeepr {
 			'PartKeepr\Part\PartImage',
 			'PartKeepr\Part\PartAttachment',
 			'PartKeepr\PartCategory\PartCategory',
+				
+			'PartKeepr\Printing\PageBasicLayout\PageBasicLayout',
+			'PartKeepr\Printing\PrintingJob\PrintingJob',
+			'PartKeepr\Printing\PrintingJobConfiguration\PrintingJobConfiguration',
 		
 			'PartKeepr\Project\Project',
 			'PartKeepr\Project\ProjectPart',

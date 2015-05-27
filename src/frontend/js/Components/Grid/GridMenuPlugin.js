@@ -23,21 +23,31 @@ Ext.define("PartKeepr.GridMenuPlugin", {
 				text: i18n("Export"),
 				icon: 'resources/fugue-icons/icons/application-export.png',
 				menu: [{
+                    icon: 'resources/mimetypes/csv.png',
+                    text: 'Export as semicolon-delimited CSV (.csv)',
+                    handler: this.exportSSV,
+                    scope: this
+                },{
 					icon: 'resources/mimetypes/csv.png',
-					text: 'Export as CSV (.csv)',
+					text: i18n('Export as comma-delimited CSV (.csv)'),
 					handler: this.exportCSV,
 					scope: this
-				},{
+				},,{
 					icon: 'resources/fugue-icons/icons/blue-document-excel.png',
-					text: 'Export as Excel XML (.xlsx)',
+					text: i18n('Export as Excel XML (.xlsx)'),
 					handler: this.exportXLSX,
 					scope: this
 				},{
 					icon: 'resources/icons/mediawiki_icon.png',
-					text: 'Export as MediaWiki table (.txt)',
+					text: i18n('Export as MediaWiki table (.txt)'),
 					handler: this.exportWiki,
 					scope: this
 				}]
+			},{
+				icon: 'resources/fugue-icons/icons/printer.png',
+				text: i18n('Print ...'),
+				handler: this.exportPrint,
+				scope: this
 			}]
 		});
 		
@@ -55,8 +65,20 @@ Ext.define("PartKeepr.GridMenuPlugin", {
 	 * Exports the grid to CSV
 	 */
 	exportCSV: function () {
-		this.doExport(Ext.ux.exporter.Exporter.exportAny(this.grid, "csv", {}), this.getExportFilename() + ".csv");
+        var csvFormatter = Ext.ux.exporter.Exporter.getFormatterByName("csv");
+        csvFormatter.separator = ",";
+
+		this.doExport(Ext.ux.exporter.Exporter.exportAny(this.grid, csvFormatter, {}), this.getExportFilename() + ".csv");
 	},
+    /**
+     * Exports the grid to SSV (semicolon separated file)
+     */
+    exportSSV: function () {
+        var csvFormatter = Ext.ux.exporter.Exporter.getFormatterByName("csv");
+        csvFormatter.separator = ";";
+
+        this.doExport(Ext.ux.exporter.Exporter.exportAny(this.grid, "csv", {}), this.getExportFilename() + ".csv");
+    },
 	/**
 	 * Exports the grid to MediaWiki format
 	 */
@@ -68,6 +90,21 @@ Ext.define("PartKeepr.GridMenuPlugin", {
 	 */
 	exportXLSX: function () {
 		this.doExport(Ext.ux.exporter.Exporter.exportAny(this.grid, "excel", {}), this.getExportFilename() + ".xlsx");
+	},
+	/**
+	 * Exports selection to print
+	 */
+	exportPrint: function () {
+		selection = this.grid.getSelectionModel().getSelection();
+		var ids = new Array();
+		for (var i=0;i<selection.length;i++) {
+			ids.push(selection[i].get("id"));
+		}
+		
+		var val = Ext.create("PartKeepr.PrintingWindow");
+		val.setObjectType('PartKeepr\\Part\\Part');
+		val.setObjectIds(ids);
+		val.show();
 	},
 	/**
 	 * Returns the filename without extension for the grid. Defaults to the grid's title

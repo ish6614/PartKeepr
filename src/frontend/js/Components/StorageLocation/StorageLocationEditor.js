@@ -56,6 +56,7 @@ Ext.define('PartKeepr.StorageLocationEditor', {
 			items: [{
 			        	xtype: 'textfield',
 			        	name: 'name',
+			        	anchor: '100%',
 			        	labelWidth: 110,
 			        	fieldLabel: i18n("Storage Location")
 					},
@@ -77,7 +78,7 @@ Ext.define('PartKeepr.StorageLocationEditor', {
 		this.callParent();
 	},
 	onStartEdit: function () {
-		this.store.getProxy().extraParams.storageLocation = this.record.get("name");
+		this.store.getProxy().extraParams.storageLocation = this.record.get("id");
 		this.store.load();
 	}
 	

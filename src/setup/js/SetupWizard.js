@@ -62,12 +62,14 @@ Ext.define('PartKeeprSetup.SetupWizard', {
             title: 'Welcome',
             showTitle: true,
             titleCls: '',
-            titleStyle: 'font-size: 2.5em;',
+            titleStyle: 'font-size: 2.5em;line-height: 30px;',
             cls: 'x-partkeepr-setup-basecard',
             items: [{
                 border: false,
                 bodyStyle: 'background:none;',
-                html: 'This wizard guides you through the setup of <b>PartKeepr</b>.'
+                html: 'This wizard guides you through the setup of <b>PartKeepr</b>.<br/><br/>Note that you can '+
+                      're-start setup any time, even if you already have an existing database. No existing data will '+
+                      'be overwritten.'
             }]
         }));
     	
@@ -83,7 +85,7 @@ Ext.define('PartKeeprSetup.SetupWizard', {
             title: 'Cron Setup',
             showTitle: true,
             titleCls: '',
-            titleStyle: 'font-size: 2.5em;',
+            titleStyle: 'font-size: 2.5em;line-height: 30px;',
             cls: 'x-partkeepr-setup-basecard',
             items: [{
                 border: false,
@@ -104,7 +106,7 @@ Ext.define('PartKeeprSetup.SetupWizard', {
             title: 'Setup Complete',
             showTitle: true,
             titleCls: '',
-            titleStyle: 'font-size: 2.5em;',
+            titleStyle: 'font-size: 2.5em;line-height: 30px;',
             cls: 'x-partkeepr-setup-basecard',
             items: [{
                 border: false,

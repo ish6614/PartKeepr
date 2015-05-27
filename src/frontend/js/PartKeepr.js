@@ -1,9 +1,5 @@
 Ext.namespace('PartKeepr'); 
 		
-Ext.Loader.setPath({
-    'PartKeepr': 'js'
-});
-
 PartKeepr.application = null;
 
 Ext.application({
@@ -11,9 +7,9 @@ Ext.application({
     launch: function() {
     	Ext.get("loading").hide();
     	Ext.setLocale('en_US');
-    	
+
     	this.createLayout();
-    	
+
     	PartKeepr.application = this;
     	
     	// Set static data of the server
@@ -26,6 +22,7 @@ Ext.application({
     	if (window.parameters.auto_start_session) {
     		this.getSessionManager().setSession(window.parameters.auto_start_session);
     		this.getStatusbar().connectionButton.hide();
+            this.setUsername(window.parameters.autoLoginUsername);
     		this.onLogin();
     	} else {
         	// If auto login is wanted (for e.g. demo systems), put it in here
@@ -39,6 +36,9 @@ Ext.application({
     	}
     	
         Ext.fly(document.body).on('contextmenu', this.onContextMenu, this);
+    },
+    getPartManager: function () {
+        return this.partManager;
     },
     onContextMenu: function (e, target) {
     	if (!e.ctrlKey) {
@@ -62,14 +62,9 @@ Ext.application({
     	}
     	
     	this.reloadStores();
-		
-		var j = Ext.create("PartKeepr.PartManager", {
-			title: i18n("Part Manager"),
-			iconCls: 'icon-brick',
-			closable: false
-		});
-		
-		this.addItem(j);
+
+        this.createPartManager();
+
 		this.menuBar.enable();
 		
 		this.doSystemStatusCheck();
@@ -79,11 +74,42 @@ Ext.application({
 		/* @todo Load user preferences directly on login and not via delayed task */
 		this.displayTipWindowTask = new Ext.util.DelayedTask(this.displayTipOfTheDayWindow, this);
 		this.displayTipWindowTask.delay(100);
-		
+
+        if (window.parameters.motd) {
+            this.displayMOTD();
+        }
+
 		this.setSession(this.getSessionManager().getSession());
 		
 		this.getStatusbar().getConnectionButton().setConnected();
 		
+    },
+    /**
+     * Re-creates the part manager. This is usually called when the "compactLayout" configuration option has been
+     * changed.
+     *
+     * @param none
+     * @return nothing
+     */
+    recreatePartManager: function () {
+        this.centerPanel.remove(this.partManager);
+        this.getPartManager().destroy();
+
+        this.createPartManager();
+    },
+    /**
+     * Creates the part manager. While this is usually only done after login, it can also happen when the user changes
+     * the "compact" preference.
+     */
+    createPartManager: function () {
+        this.partManager = Ext.create("PartKeepr.PartManager", {
+            title: i18n("Part Manager"),
+            compactLayout: PartKeepr.getApplication().getUserPreference("partkeepr.partmanager.compactlayout", false),
+            iconCls: 'icon-brick',
+            closable: false
+        });
+
+        this.centerPanel.insert(0, this.partManager);
     },
     /**
      * Sets the initial user preferences, which are applied into the userPreferenceStore after login.
@@ -110,6 +136,12 @@ Ext.application({
     			j.show();
     		}
     	}
+    },
+    /**
+     * Displays a message-of-the-day
+     */
+    displayMOTD: function () {
+        Ext.MessageBox.alert(i18n("Message of the day"), window.parameters.motd);
     },
     /**
      * Does a schema status call against the PartKeepr installation, in order to verify if the schema is up-to-date.
@@ -177,6 +209,19 @@ Ext.application({
     	this.centerPanel.removeAll(true);
     	this.getSessionManager().logout();
     },
+	/**
+	 * Handles a runtime error.
+	 * 
+	 * @param error A string indicating which error has occured.
+	 */
+	raiseRuntimeError: function (error) {
+		var exception = {
+			message: i18n("Runtime Error"),
+			detail: error
+		};
+                	
+		PartKeepr.ExceptionWindow.showException(exception);
+	},
     createGlobalStores: function () {
     	this.footprintStore = Ext.create("Ext.data.Store",
     			{
@@ -387,22 +432,21 @@ Ext.application({
     	this.menuBar = Ext.create("PartKeepr.MenuBar");
     	
     	this.menuBar.disable();
-    	
     	Ext.create('Ext.container.Viewport', {
     		layout: 'fit',
     		items: [{
     			xtype: 'panel',
     			border: false,
-    			layout: 'border',
-    			items: [
-    			       this.centerPanel,
-    			       this.messageLog
-    			       ],
+                layout: 'border',
+                items: [
+                    this.centerPanel,
+                    this.messageLog
+                ],
                 bbar: this.statusBar,
                 tbar: this.menuBar
     		}]
-    		
-        });    	
+
+        });
     },
     addItem: function (item) {
     	this.centerPanel.add(item);

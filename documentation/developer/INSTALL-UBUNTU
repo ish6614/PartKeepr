@@ -40,25 +40,19 @@ pear update-channels
 pear upgrade
 
 # Install phpunit, phing, doctrine components and twig
+#
+# It can happen that a required channel is not available, maybe due to a server error or domain moving. Try again a bit
+# later or use the force of google to find out what to do.
+#
+# During the installation, it could happen that the ImageMagick library gets pulled in via PECL. Just hit enter on each
+# question and ignore if it fails; as long as you've got php5-imagick installed, you're set.
+
 pear config-set auto_discover 1
-pear channel-discover pear.phpunit.de
-pear install phpunit/PHPUnit
-pear channel-discover pear.phing.info
-pear install phing/phing
-
-pear install pear.doctrine-project.org/DoctrineORM
-pear install phpunit/phpcpd
-# (the required domain 'components.ez.no' seems to be unavailable quite often)
-
+pear install pear.phpunit.de/PHPUnit pear.phpunit.de/phpcpd pear.phing.info/phing pear.doctrine-project.org/DoctrineORM pear.doctrine-project.org/DoctrineSymfonyYaml pear.doctrine-project.org/DoctrineSymfonyConsole pear.twig-project.org/Twig
 pear install --alldeps phpmd/PHP_PMD-alpha
 
-pear install doctrine/DoctrineSymfonyYaml
-pear install doctrine/DoctrineSymfonyConsole
-
-pear channel-discover pear.twig-project.org
-pear install twig/Twig
-
-
+# You'll also need jsl, the JavaScript lint
+# Unfortunately, you need to compile this manually.
 ------------------
 # PARTKEEPR CONFIG
 ------------------
@@ -99,6 +93,8 @@ cp config.php.template config.php
 # You have now two choices: Proceed with or without sample data.
 
 # ==== WITH SAMPLE DATA ====
+# Yes, this is really a separate database! partdb is another software, and we're using the existing partdb data.
+# You may remove the partdb database after migration has been taken place.
 mysql -uroot -p
 CREATE DATABASE partdb;
 grant usage on *.* to partdb@localhost identified by 'partdb';
@@ -117,7 +113,7 @@ php SetupDatabase.php --yes
 # ==== Issuing migrations ====
 # Ignore all messages about "was executed but did not result in any SQL statements"
 cd /var/www/PartKeepr/
-php doctrine.php migrations:migrate
+php partkeepr.php migrations:migrate
 
 # Build the frontend
 phing build

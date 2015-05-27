@@ -19,7 +19,7 @@ Ext.define('PartKeepr.PartEditor', {
 	 */
 	initComponent: function () {
 		// Defines the overall height of all fields, used to calculate the anchoring for the description field
-		var overallHeight = (this.partMode == "create") ? '-280' : '-215';
+		var overallHeight = (this.partMode == "create") ? '-280' : '-235';
 		
 		this.nameField = Ext.create("Ext.form.field.Text", {
 			name: 'name',
@@ -83,8 +83,6 @@ Ext.define('PartKeepr.PartEditor', {
 				listeners: {
 					scope: this,
 					change: function (field, newValue) {
-						console.log(newValue);
-						
 						if (newValue !== 0) {
 							this.footprintSet.setValue(true);
 						}
@@ -169,8 +167,26 @@ Ext.define('PartKeepr.PartEditor', {
 	            }]
 			},{
 				xtype: 'textfield',
-				fieldLabel: i18n("Internal Part Number"),
-				name: 'internalPartNumber'
+				fieldLabel: i18n("Condition"),
+				name: 'partCondition'
+			},{
+                xtype: 'fieldcontainer',
+                layout: 'hbox',
+                items : [{
+                    xtype: 'textfield',
+                    labelWidth: 150,
+                    fieldLabel: i18n("Internal Part Number"),
+                    name: 'internalPartNumber',
+                    flex: 1
+                },{
+                    xtype: 'displayfield',
+                    margins: {
+                        left: 5
+                    },
+                    fieldLabel: i18n("Internal ID"),
+                    name: 'id'
+                }]
+
 			}];
 		
 		// Creates the distributor grid
@@ -263,7 +279,7 @@ Ext.define('PartKeepr.PartEditor', {
 					iconCls: 'icon-brick',
 					xtype: 'panel',
 					border: false,
-					autoScroll: true,
+					autoScroll: false,
 					layout: 'anchor',
 					defaults: {
 				        anchor: '100%',
@@ -387,11 +403,34 @@ Ext.define('PartKeepr.PartEditor', {
 	_onItemSaved: function () {
 		this.fireEvent("partSaved", this.record);
 		
-		if (this.keepOpenCheckbox.getValue() !== true) {
+		if (this.keepOpenCheckbox.getValue() !== true && this.createCopyCheckbox.getValue() !== true) {
 			this.fireEvent("editorClose", this);
 		} else {
-			var newItem = Ext.create("PartKeepr.Part", this.partDefaults);
-			this.editItem(newItem);
+			var newItem;
+			if (this.partMode == "create") {
+				if (this.copyPartDataCheckbox.getValue() === true) {
+					data = this.record.getData(true);
+					data.id = null;
+					newItem = Ext.create("PartKeepr.Part");
+					newItem.setDataWithAssociations(data);
+
+					this.editItem(newItem);
+				} else {
+					newItem = Ext.create("PartKeepr.Part", this.partDefaults);
+					this.editItem(newItem);
+				}
+			} else {
+				var data = this.record.getData(true);
+				data.id = null;
+				newItem = Ext.create("PartKeepr.Part");
+				newItem.setDataWithAssociations(data);
+
+				this.editItem(newItem);
+			}
+			
+			
+			
+			
 		}
 	},
 	bindChildStores: function () {

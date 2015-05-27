@@ -83,6 +83,10 @@ if (Configuration::getOption("partkeepr.frontend.autologin.enabled", false) === 
 	$aParameters["autoLoginPassword"] = Configuration::getOption("partkeepr.frontend.autologin.password");
 }
 
+if (Configuration::getOption("partkeepr.frontend.motd", false) !== false) {
+    $aParameters["motd"] = Configuration::getOption("partkeepr.frontend.motd");
+}
+
 /* Load and render the template */
 $template = $twig->loadTemplate("index.tpl");
 
@@ -95,4 +99,10 @@ if ($renderParams["debug_all"]) {
 	$renderParams["scripts"] = unserialize(file_get_contents(PartKeepr::getRootDirectory() . "/partkeepr.jsfiles"));
 }
 
+if (isset($_SERVER['HTTPS'])) {
+	$renderParams["https"] = true;
+} else {
+	$renderParams["https"] = false;
+}
+		
 echo $template->render($renderParams);

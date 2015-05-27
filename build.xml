@@ -29,13 +29,13 @@
 		<copy file="theme/css/partkeepr.css" tofile="src/frontend/css/partkeepr-theme.css" />
 		<copy file="theme/css/partkeepr.css" tofile="src/setup/css/partkeepr-theme.css" />
 
-		<copy todir="src/frontend/resources/themes/images/">
+		<copy todir="src/frontend/themes/images/">
 			<fileset dir="theme/themes/images/">
 				<include name="**/*" />
 			</fileset>
 		</copy>
 
-		<copy todir="src/setup/resources/themes/images/">
+		<copy todir="src/setup/themes/images/">
 			<fileset dir="theme/themes/images/">
 				<include name="**/*" />
 			</fileset>
@@ -43,9 +43,9 @@
 	</target>
 
 	<target name="git-update-submodules">
-		<exec command="git submodule sync" checkreturn="true" />
-		<exec command="git submodule init" checkreturn="true" />
-		<exec command="git submodule update" checkreturn="true" />
+		<exec command="git submodule sync" passthru="true" checkreturn="true" />
+		<exec command="git submodule init" passthru="true" checkreturn="true" />
+		<exec command="git submodule update" passthru="true" checkreturn="true" />
 	</target>
 
 	<!-- Build the end-user 'setup' directory -->
@@ -182,6 +182,30 @@
 			</else>
 		</if>
 
+        <echo>Copying Ext.ux.Wizard</echo>
+        <copy overwrite="false" todir="frontend/js/Ext.ux/">
+            <fileset dir="3rdparty/ext-wizard/Ext.ux.Wizard/">
+                <include name="Ext.ux.Wizard.Card.js" />
+                <include name="Ext.ux.Wizard.CardLayout.js" />
+                <include name="Ext.ux.Wizard.Header.js" />
+                <include name="Ext.ux.Wizard.js" />
+            </fileset>
+        </copy>
+
+        <echo>Copying Ext.ux.Exporter</echo>
+        <copy overwrite="false" todir="frontend/js/Ext.ux.Exporter/">
+            <fileset dir="3rdparty/Ext.ux.Exporter">
+                <include name="Base64.js" />
+                <include name="Formatter.js" />
+                <include name="Button.js" />
+                <include name="Exporter.js" />
+                <include name="downloadify.min.js" />
+                <include name="wikiFormatter/*" />
+                <include name="excelFormatter/*" />
+                <include name="csvFormatter/*" />
+            </fileset>
+        </copy>
+
 		<echo>Copying phpjs</echo>
 		<mkdir dir="frontend/js/org.phpjs.lib/" />
 		<if>
@@ -280,7 +304,6 @@
 				<exclude name="partkeepr.jsb3.template" />
 				<exclude name="pre-commit.hook" />
 				<exclude name="RELEASE-TODO" />
-				<exclude name="doctrine.php" />
 				<exclude name="build.properties" />
 				<exclude name="build.xml" />
 				<exclude name="cli-config.php" />
@@ -349,11 +372,10 @@
 
 	<!-- Builds the jsb3 file and build the minified JS files -->
 	<target name="jsbuilder">
-		<exec command="php util/gen-jsb3-file.php src/frontend/ ${extjs.path}" />
-		<exec command="${extjs.path}/jsbuilder/JSBuilder.sh --projectFile ${project.basedir}/partkeepr.jsb3 --deployDir ${project.basedir}/frontend/js" passthru="true" />
-
-		<exec command="${extjs.path}/jsbuilder/JSBuilder.sh --projectFile ${project.basedir}/3rdparty/Ext.ux.Exporter/Ext.ux.Exporter.jsb --deployDir ${project.basedir}/frontend/js/Ext.ux" passthru="true" />
-	</target>
+        <property name="jsbuilder.sources" value="--source=${project.basedir}/3rdparty/extjs/examples/ux/TabCloseMenu.js --source=${project.basedir}/src/frontend/js --source=${project.basedir}/3rdparty/ext-wizard/Ext.ux.Wizard/ --source=${project.basedir}/3rdparty/Ext.ux.Exporter/ --source ${project.basedir}/3rdparty/extjs/examples/ux/statusbar/"/>
+		<exec passthru="true" command="php partkeepr.php partkeepr:js-minify ${project.basedir}/frontend/js/partkeepr-debug.js ${jsbuilder.sources}" />
+        <exec passthru="true" command="php partkeepr.php partkeepr:js-minify ${project.basedir}/frontend/js/partkeepr.js --compress ${jsbuilder.sources}" />
+    </target>
 
 	<!-- Checks all JavaScript files for common mistakes. Requires JSLint from http://www.javascriptlint.com -->
 	<target name="jslint">
@@ -378,6 +400,7 @@
 				<include name="**/*.php" />
 			</fileset>
 			<formatter type="xml" outfile="reports/logs/pmd.xml" />
+            <formatter type="html" outfile="reports/pmd.html"/>
 		</phpmd>
 	</target>
 

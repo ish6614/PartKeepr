@@ -36,21 +36,59 @@ class PartService extends Service implements RestfulService {
 		 */
 		if ($this->hasParameter("query") && $this->getParameter("query") != "") {
 
+            // Special case: If the user passes id:<number>, we retrieve that number only.
+            // This is
+
+            $additionalResults = array();
+
+            $regExp = "id:[0-9]+";
+            if (preg_match_all("/id:[0-9]+/", $this->getParameter("query"), $pregResults) === 1) {
+                foreach ($pregResults as $match) {
+                    foreach ($match as $result) {
+                        $additionalResults[] = str_replace("id:", "", $result);
+                    }
+                }
+            }
+
 			$fulltextSearch = new PartFulltextSearch($this->getParameter("query"));
 			$fulltextSearchResults = $fulltextSearch->query();
-			
-			$queryBuilder->andWhere("q.id IN (".implode(",", $fulltextSearchResults).")");
+
+            $ids = array_merge($fulltextSearchResults, $additionalResults);
+
+			$queryBuilder->andWhere("q.id IN (".implode(",", $ids).")");
 			
 		}
 		
 		/**
-		 * Applies filtering by the storage location name
+		 * Applies filtering by the storage location id
 		 */
 		if ($this->getParameter("storageLocation") !== null) {
-			$queryBuilder->andWhere("st.name = :storageLocation");
+			$queryBuilder->andWhere("st.id = :storageLocation");
 			$queryBuilder->setParameter("storageLocation", $this->getParameter("storageLocation"));
 		}
 		
+		// We need that join multiple times. Not exactly nice, as this should get pulled in only when needed.
+		// @todo Refactor so that this join only gets inside when needed
+		$queryBuilder->leftJoin("q.distributors", "di");
+		
+		if ($this->getParameter("distributor") !== null) {
+			$queryBuilder->leftJoin("di.distributor", "did");
+			$queryBuilder->andWhere("did.id = :distributor");
+			$queryBuilder->setParameter("distributor", $this->getParameter("distributor"));
+		}
+		
+		if ($this->getParameter("manufacturer") !== null) {
+			$queryBuilder->leftJoin("q.manufacturers", "ma");
+			$queryBuilder->leftJoin("ma.manufacturer", "mam");
+			$queryBuilder->andWhere("mam.id = :manufacturer");
+			$queryBuilder->setParameter("manufacturer", $this->getParameter("manufacturer"));
+		}
+
+        if ($this->getParameter("footprint") !== null) {
+            $queryBuilder->andWhere("f.id = :footprintId");
+            $queryBuilder->setParameter("footprintId", $this->getParameter("footprint"));
+        }
+
 		/**
 		 * Filter by the category id and set the category mode
 		 * 
@@ -90,7 +128,6 @@ class PartService extends Service implements RestfulService {
 		 * Query by the distributor's order number
 		 */
 		if ($this->getParameter("distributorOrderNumber")) {
-			$queryBuilder->leftJoin("q.distributors", "di");
 			$queryBuilder->andWhere("LOWER(di.orderNumber) LIKE :orderNumber");
 			$queryBuilder->setParameter("orderNumber", "%".strtolower($this->getParameter("distributorOrderNumber"))."%");
 		}
@@ -100,6 +137,70 @@ class PartService extends Service implements RestfulService {
 		 */
 		if ($this->getParameter("withoutPrice") === true || $this->getParameter("withoutPrice") === "true") {
 			$queryBuilder->andWhere("q.averagePrice IS NULL");
+		}
+		
+		if ($this->getParameter("createDateRestriction") !== "") {
+			try {
+				$dateTime = new \DateTime($this->getParameter("createDate"));
+				$date = $dateTime->format("Y-m-d");
+				
+				switch ($this->getParameter("createDateRestriction")) {
+					case ">":
+						$queryBuilder->andWhere("q.createDate > :createDate");
+						$queryBuilder->setParameter("createDate", $date);
+						break;
+					case "<":
+						$queryBuilder->andWhere("q.createDate < :createDate");
+						$queryBuilder->setParameter("createDate", $date);
+						break;
+					case "=":
+						$queryBuilder->andWhere("q.createDate > :createDate AND q.createDate < :createDate2");
+						$queryBuilder->setParameter("createDate", $date. " 00:00:00");
+						$queryBuilder->setParameter("createDate2", $date. " 23:59:59");
+						break;
+					default:
+						break;
+				}
+			} catch (\Exception $e) {
+				// Do nothing for now
+			}
+		}
+		
+		if ($this->getParameter("withoutStockRemovals", false) === true || $this->getParameter("withoutStockRemovals", false) === "true") {
+			$q = PartKeepr::getEM()->createQueryBuilder();
+			$q->select("p.id")->from("PartKeepr\Part\Part", "p")->leftJoin("p.stockLevels", "sl")->where("sl.stockLevel < 0");
+			$query = $q->getQuery();
+			
+			$result = $query->getResult();
+			$filter = array();
+			foreach ($result as $res) {
+				$filter[] = $res["id"];
+			}
+			
+			$queryBuilder->andWhere("q.id NOT IN (".implode(",", $filter).")");
+		}
+		
+		/**
+		 * Query by the review flag
+		 */
+		if ($this->getParameter("needsReview") === true || $this->getParameter("needsReview") === "true") {
+			$queryBuilder->andWhere("q.needsReview = true");
+		}		
+		
+		/**
+		 * Query by the status
+		 */
+		if ($this->getParameter("status")) {
+			$queryBuilder->andWhere("LOWER(q.status) LIKE :status");
+			$queryBuilder->setParameter("status", "%".strtolower($this->getParameter("status"))."%");
+		}
+		
+		/**
+		 * Query by the condition
+		 */
+		if ($this->getParameter("condition")) {
+			$queryBuilder->andWhere("LOWER(q.partCondition) LIKE :condition");
+			$queryBuilder->setParameter("condition", "%".strtolower($this->getParameter("condition"))."%");
 		}
 	}
 	

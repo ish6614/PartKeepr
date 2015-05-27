@@ -5,35 +5,32 @@
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 		<title>PartKeepr</title>
 		
-		<link href='http://fonts.googleapis.com/css?family=Ubuntu:400,700italic' rel='stylesheet' type='text/css'>
+		
+		<link href="{% if https %}https{% else %}http{% endif %}://fonts.googleapis.com/css?family=Ubuntu:400,700italic" rel="stylesheet" type="text/css">
 		
 		<!-- Include the ExtJS CSS Theme -->
 		<link rel="stylesheet" type="text/css" href="css/partkeepr-theme.css"/>
-		
+
 		<link rel="stylesheet" type="text/css" href="js/Ext.ux/statusbar/css/statusbar.css"/>
-		
+
 		<link rel="stylesheet" type="text/css" href="css/PartKeepr.css"/>
-		
+
 		<link rel="icon" href="favicon.ico"/>
 		
 		<!-- Include the ExtJS JavaScript Library -->
-		<script type="text/javascript" src="extjs/bootstrap.js"></script> 
 		{% if debug %}
 			{% if debug_all %}
 			<script type="text/javascript" src="extjs/ext-all-debug.js"></script>
 			{% for i in scripts %}
 			<script type="text/javascript" src="{{ i }}"></script>
 			{% endfor %}
-			<script type="text/javascript" src="js/Ext.ux/Ext.ux.formatter-all-debug.js"></script>
 			{% else %}
 			<script type="text/javascript" src="extjs/ext-all-debug.js"></script>
 			<script type="text/javascript" src="js/partkeepr-debug.js"></script>
-			<script type="text/javascript" src="js/Ext.ux/Ext.ux.formatter-all-debug.js"></script>
 			{% endif %}
 		{% else %}
 			<script type="text/javascript" src="extjs/ext-all.js"></script>
 			<script type="text/javascript" src="js/partkeepr.js"></script>
-			<script type="text/javascript" src="js/Ext.ux/Ext.ux.formatter-all.js"></script>
 		{% endif %}
 		
 		<script type="text/javascript" src="js/org.phpjs.lib/php.default.min.js"></script>

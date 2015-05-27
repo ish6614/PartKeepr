@@ -16,6 +16,13 @@ class PartAttachment extends UploadedFile implements Serializable, Deserializabl
 	 * @var string
 	 */
 	private $description;
+	
+	/**
+	 * Defines if the attachment is an image.
+	 * @Column(type="boolean",nullable=true)
+	 * @var boolean
+	 */
+	private $isImage;
 
 	/**
 	 * Creates a new part attachment
@@ -23,6 +30,7 @@ class PartAttachment extends UploadedFile implements Serializable, Deserializabl
 	public function __construct () {
 		parent::__construct();
 		$this->setType("PartAttachment");
+		$this->isImage = null;
 	}
 	
 	/**
@@ -89,6 +97,13 @@ class PartAttachment extends UploadedFile implements Serializable, Deserializabl
 		if (array_key_exists("id", $parameters)) {
 			if (substr($parameters["id"], 0, 4) === "TMP:") {
 				$this->replaceFromTemporaryFile($parameters["id"]);
+			} else {
+                // In case the part has been copied, the ID doesn't match. In that case we copy the attachment
+                if ($this->getId() !== $parameters["id"]) {
+                    $otherAttachment = PartAttachment::loadById($parameters["id"]);
+                    $this->replace($otherAttachment->getFilename());
+                    $this->setOriginalFilename($otherAttachment->getOriginalFilename());
+                }
 			}
 		}
 
@@ -104,12 +119,25 @@ class PartAttachment extends UploadedFile implements Serializable, Deserializabl
 	/**
 	 * Returns if the attachment is an image or not.
 	 * 
-	 * Ths method uses ImageMagick to find out if this is an image. Limitations apply; if ImageMagick doesn't support
-	 * the image format, this method would return false, even if it is an image.
-	 * 
 	 * @return True if the attachment is an image, false otherwise
 	 */
 	public function isImage () {
+		if ($this->isImage === null) {
+			$this->isImage = $this->canImagickParseImage();
+		}
+		
+		return $this->isImage;
+	}
+	
+	/**
+	 * Checks if ImageMagick can parse the image.
+	 * 
+	 * This method uses ImageMagick to find out if this is an image. Limitations apply; if ImageMagick doesn't support
+	 * the image format, this method would return false, even if it is an image.
+	 * 
+	 * @return boolean true if ImageMagick can parse the file, false otherwise
+	 */
+	private function canImagickParseImage () {
 		/**
 		 * Special case: Check if it's a PDF. If yes, return immediately.
 		 * This is because ImageMagick outputs warning messages for malformed PDF files, and halts the execution
@@ -126,4 +154,36 @@ class PartAttachment extends UploadedFile implements Serializable, Deserializabl
 			return false;
 		}
 	}
+	
+	/**
+	 * Replaces the current file with a new file.
+	 *
+	 * @param string $path	The path to the original file
+	 */
+	public function replace ($path) {
+		parent::replace($path);
+        $this->isImage = $this->canImagickParseImage();
+	}
+	
+	/**
+	 * Replaces the file from an URL. Does some tricks to avoid 403 forbidden on some sites.
+	 * @param string $url
+	 */
+	public function replaceFromURL ($url) {
+		parent::replaceFromURL($url);
+        $this->isImage = $this->canImagickParseImage();
+	}
+
+    /**
+     * Replaces the file with a given temporary file.
+     *
+     * Additionally checks if the attachment is an image and flags the attachment as such.
+     *
+     * @param string $id The temporary id (prefixed with TMP:)
+     */
+    public function replaceFromTemporaryFile ($id) {
+        parent::replaceFromTemporaryFile($id);
+
+        $this->isImage = $this->canImagickParseImage();
+    }
 }

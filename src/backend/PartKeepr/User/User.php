@@ -19,6 +19,9 @@ class User extends BaseEntity implements Serializable, Deserializable {
 	/** @Column(type="boolean") */
 	private $admin;
 	
+	/** @Column(type="datetime",nullable=true) */
+	private $lastSeen;
+	
 	/**
 	 * Creates a new user object.
 	 * 
@@ -39,23 +42,12 @@ class User extends BaseEntity implements Serializable, Deserializable {
 	
 	/**
 	 * Sets the username.
-	 * 
-	 * Forces the username to have
-	 * lowercase a-z characters. 
-	 * 
-	 * Replaces space with an underscore.
-	 * Replaces dot with nothing.
-	 * 
-	 * @param string $username	The username to set. Applies automatic username modification.
+	 *
+	 * @param string $username	The username to set.
 	 * @return nothing
 	 */
 	public function setUsername ($username) {
-		$username = strtolower($username);
-		$username = str_replace(" ", "_", $username);
-		$username = str_replace(".", "", $username);
-		
 		$this->username = $username;
-		
 	}
 	
 	/**
@@ -150,6 +142,21 @@ class User extends BaseEntity implements Serializable, Deserializable {
 		} else {
 			return false;
 		}
+	}
+	
+	/**
+	 * Updates the last seen field to the current time.
+	 */
+	public function updateSeen() {
+		$this->lastSeen = new \DateTime("now");
+	}
+	
+	/**
+	 * Retrieve the last seen flag for a user.
+	 * @return \DateTime
+	 */
+	public function getLastSeen() {
+		return $this->lastSeen;
 	}
 	
 	/**
